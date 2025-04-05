@@ -9,6 +9,7 @@ import course from './routes/course.js'
 import channel from './routes/channel.js'
 import videos from "./routes/videos.js";
 import reviews from './routes/reviews.js'
+import comments from './routes/comments.js'
 
 const app = express();
 
@@ -38,12 +39,12 @@ io.on("connection", (socket) => {
 });
 
 // routes
-
 app.use("/", auth);
 app.use("/", course);
 app.use("/", channel);
 app.use("/", videos);
 app.use("/", reviews);
+app.use("/", comments);
 
 // Connect to database and start server
 connectDB()
