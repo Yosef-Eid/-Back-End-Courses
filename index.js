@@ -8,6 +8,7 @@ import auth from "./routes/auth.js";
 import course from './routes/course.js'
 import channel from './routes/channel.js'
 import videos from "./routes/videos.js";
+import reviews from './routes/reviews.js'
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use("/", auth);
 app.use("/", course);
 app.use("/", channel);
 app.use("/", videos);
+app.use("/", reviews);
 
 // Connect to database and start server
 connectDB()
