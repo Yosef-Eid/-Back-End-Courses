@@ -24,6 +24,9 @@ const userSchema = new mongoose.Schema({
     favorite: [],
     cart: [],
     profileImage: { type: String },
+    isVerified: { type: Boolean, default: false },
+    verificationCode: { type: String },
+    verificationCodeExpires: { type: Date },
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);

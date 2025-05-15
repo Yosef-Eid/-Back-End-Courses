@@ -1,5 +1,5 @@
 import express from 'express';
-import { addCourseFavorite, addCourseToCart, getAllUsers, getCartCourses, getCurrentUser, getFavoriteCourses, getUserById, login, register, updateUser } from '../controls/auth.js';
+import { addCourseFavorite, addCourseToCart, getAllUsers, getCartCourses, getCurrentUser, getFavoriteCourses, getUserById, login, register, resendVerificationEmail, updateUser, verifyEmailCode } from '../controls/auth.js';
 import  { verifyToken, verifyTokenAndAuthorization, verifyTokenIsAdmin } from '../middlewares/verify.js';
 import { upload } from '../utils/uploadAvatar.js';
 const router = express.Router();
@@ -11,6 +11,8 @@ router.get('/getUser/:id', verifyTokenAndAuthorization, getUserById)
 router.post('/register', register)
 router.post('/login', login)
 router.put('/updateUser/:id', verifyTokenAndAuthorization, upload, updateUser)
+router.post('/verify-email', verifyEmailCode);
+router.post('/resend-verification', resendVerificationEmail);
 
 // favorite
 router.put('/favorite/:courseId', verifyToken, addCourseFavorite)

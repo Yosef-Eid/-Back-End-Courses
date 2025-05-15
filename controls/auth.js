@@ -5,6 +5,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { uploadToCloudinary } from '../utils/uploadAvatar.js';
 import Course from '../models/courses.js';
+import {sendVerificationEmail} from '../utils/sendEmail.js';
 
 // Get current user profile
 export const getCurrentUser = async (req, res) => {
@@ -41,43 +42,103 @@ export const getUserById = async (req, res) => {
     }
 }
 
-// Register new user
 export const register = async (req, res) => {
     try {
-        // Validate user input using Joi
+        // Validate user input
         const { error } = registerValidation.validate(req.body);
-        if (error) return res.status(400).json({ success: false, message: error.details[0].message })
+        if (error) return res.status(400).json({ success: false, message: error.details[0].message });
 
         // Check if email is already used
-        const user = await User.findOne({ email: req.body.email });
-        if (user) return res.status(400).json({ success: false, message: 'Email already registered' });
+        const existingUser = await User.findOne({ email: req.body.email });
+        if (existingUser) return res.status(400).json({ success: false, message: 'Email already registered' });
 
-        // Hash password using bcrypt
+        // Hash password
         const salt = await bcrypt.genSalt(10);
         req.body.password = await bcrypt.hash(req.body.password, salt);
 
-        // Create new user object
-        const newUser = new User(req.body);
+        // Generate verification code (e.g., 6-digit number)
+        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const verificationCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes from now
 
-        // Generate JWT token
-        const token = jwt.sign(
-            { id: newUser._id, name: newUser.name, admin: newUser.isAdmin },
-            process.env.JWT_SECRET_KEY,
-            { expiresIn: '10d' }
-        );
+        // Create new user with verification code
+        const newUser = new User({
+            ...req.body,
+            verificationCode,
+            verificationCodeExpires,
+            isVerified: false // Ensure this field exists in your model
+        });
 
-        // Save user to database
+        // Save user to DB
         const result = await newUser.save();
-        const { password, ...other } = result._doc;
 
-        // Return user data and token
-        res.status(201).json({ ...other, token });
+        // Send verification email
+        await sendVerificationEmail(newUser.email, verificationCode);
+
+        // Respond to client without JWT for now
+        const { password, verificationCode: code, verificationCodeExpires: expires, ...other } = result._doc;
+        res.status(201).json({
+            success: true,
+            message: 'User registered. Verification email sent.',
+            // user: other
+        });
 
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Server error', error: err.message });
     }
 };
+
+
+// export const register = async (req, res) => {
+//     try {
+//         // Validate user input using Joi
+//         const { error } = registerValidation.validate(req.body);
+//         if (error) return res.status(400).json({ success: false, message: error.details[0].message });
+
+//         // Check if email is already used
+//         const user = await User.findOne({ email: req.body.email });
+//         if (user) return res.status(400).json({ success: false, message: 'Email already registered' });
+
+//         // Hash password using bcrypt
+//         const salt = await bcrypt.genSalt(10);
+//         req.body.password = await bcrypt.hash(req.body.password, salt);
+
+//         // Create new user object
+//         const newUser = new User(req.body);
+
+//         // Save user to database first to get the _id
+//         const result = await newUser.save();
+
+//         // Send verification email
+//         try {
+//             await newUser.sendVerificationEmail();
+//         } catch (emailError) {
+//             console.error('Failed to send verification email:', emailError);
+//             // لا توقف العملية إذا فشل إرسال البريد، ولكن يمكنك التعامل مع هذا الموقف حسب احتياجاتك
+//         }
+
+//         // Generate JWT token (يمكنك تعديل صلاحية التوكن إذا أردت)
+//         const token = jwt.sign(
+//             { id: newUser._id, name: newUser.name, admin: newUser.isAdmin },
+//             process.env.JWT_SECRET_KEY,
+//             { expiresIn: '10d' }
+//         );
+
+//         const { password, ...other } = result._doc;
+
+//         // Return user data and token مع رسالة توضح ضرورة التحقق
+//         res.status(201).json({
+//             ...other,
+//             token,
+//             success: true,
+//             message: 'Registration successful! Please check your email to verify your account.'
+//         });
+
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ success: false, message: 'Server error', error: err.message });
+//     }
+// };
 
 // Login user
 export const login = async (req, res) => {
@@ -203,3 +264,100 @@ export const getCartCourses = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
+
+
+// controllers/authController.js
+
+export const verifyEmailCode = async (req, res) => {
+    try {
+        const { email, code } = req.body;
+
+        if (!email || !code) {
+            return res.status(400).json({ success: false, message: 'Email and code are required' });
+        }
+
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        if (user.isVerified) {
+            return res.status(400).json({ success: false, message: 'Email already verified' });
+        }
+
+        if (user.verificationCode !== code) {
+            return res.status(400).json({ success: false, message: 'Invalid verification code' });
+        }
+
+        if (user.verificationCodeExpires < Date.now()) {
+            return res.status(400).json({ success: false, message: 'Verification code expired' });
+        }
+
+        // Mark email as verified
+        user.isVerified = true;
+        user.verificationCode = undefined;
+        user.verificationCodeExpires = undefined;
+        await user.save();
+
+        // Create JWT token
+        const token = jwt.sign(
+            { id: user._id, name: user.name, admin: user.isAdmin },
+            process.env.JWT_SECRET_KEY,
+            { expiresIn: '10d' }
+        );
+
+        const { password, ...other } = user._doc;
+
+        res.status(200).json({
+            success: true,
+            message: 'Email verified successfully',
+            user: other,
+            token
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Server error', error: err.message });
+    }
+};
+
+
+export const resendVerificationEmail = async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Email is required' });
+        }
+
+        const user = await User.findOne({ email });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        if (user.isVerified) {
+            return res.status(400).json({ success: false, message: 'Email already verified' });
+        }
+
+        // Generate new code and expiry
+        const newCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const newExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+        user.verificationCode = newCode;
+        user.verificationCodeExpires = newExpiry;
+        await user.save();
+
+        await sendVerificationEmail(user.email, newCode);
+
+        res.status(200).json({
+            success: true,
+            message: 'Verification code resent to email'
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Server error', error: err.message });
+    }
+};
+

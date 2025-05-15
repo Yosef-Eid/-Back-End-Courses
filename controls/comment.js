@@ -54,16 +54,14 @@ export const updateComment = async (req, res) => {
     }
 }
 
-
 export const deleteComment = async (req, res) => {
     try {
- 
+
         await Comment.findByIdAndDelete(req.params.commentId)
         res.status(200).json('comment deleted')
 
     } catch (error) {
         console.log(error);
         res.status(500).json({ message: error.message });
-        
     }
 }
