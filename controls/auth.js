@@ -88,59 +88,6 @@ export const register = async (req, res) => {
     }
 };
 
-
-// export const register = async (req, res) => {
-//     try {
-//         // Validate user input using Joi
-//         const { error } = registerValidation.validate(req.body);
-//         if (error) return res.status(400).json({ success: false, message: error.details[0].message });
-
-//         // Check if email is already used
-//         const user = await User.findOne({ email: req.body.email });
-//         if (user) return res.status(400).json({ success: false, message: 'Email already registered' });
-
-//         // Hash password using bcrypt
-//         const salt = await bcrypt.genSalt(10);
-//         req.body.password = await bcrypt.hash(req.body.password, salt);
-
-//         // Create new user object
-//         const newUser = new User(req.body);
-
-//         // Save user to database first to get the _id
-//         const result = await newUser.save();
-
-//         // Send verification email
-//         try {
-//             await newUser.sendVerificationEmail();
-//         } catch (emailError) {
-//             console.error('Failed to send verification email:', emailError);
-//             // لا توقف العملية إذا فشل إرسال البريد، ولكن يمكنك التعامل مع هذا الموقف حسب احتياجاتك
-//         }
-
-//         // Generate JWT token (يمكنك تعديل صلاحية التوكن إذا أردت)
-//         const token = jwt.sign(
-//             { id: newUser._id, name: newUser.name, admin: newUser.isAdmin },
-//             process.env.JWT_SECRET_KEY,
-//             { expiresIn: '10d' }
-//         );
-
-//         const { password, ...other } = result._doc;
-
-//         // Return user data and token مع رسالة توضح ضرورة التحقق
-//         res.status(201).json({
-//             ...other,
-//             token,
-//             success: true,
-//             message: 'Registration successful! Please check your email to verify your account.'
-//         });
-
-//     } catch (err) {
-//         console.error(err);
-//         res.status(500).json({ success: false, message: 'Server error', error: err.message });
-//     }
-// };
-
-// Login user
 export const login = async (req, res) => {
     // Validate input
     const { error } = loginValidation.validate(req.body)
@@ -149,7 +96,7 @@ export const login = async (req, res) => {
         // Find user by email
         const user = await User.findOne({ email: req.body.email })
         if (!user) return res.status(400).json({ message: 'error in email or password' })
-
+            
         // Compare password
         const checkPassword = await bcrypt.compare(req.body.password, user.password)
         if (!checkPassword) return res.status(400).json({ message: 'error in email or password' })
@@ -193,6 +140,34 @@ export const updateUser = async (req, res) => {
         res.status(200).json({ message: 'Profile updated successfully', updatedUser });
     } catch (error) {
         console.error(error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// Delete user account
+export const deleteUser = async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.user.id);
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        // Delete user courses
+        await Course.deleteMany({ user: req.user.id });
+
+        // Delete user channels
+        await Channel.deleteMany({ user: req.user.id });
+
+        // Delete user videos
+        await Video.deleteMany({ user: req.user.id });
+
+        // Delete user comments
+        await Comment.deleteMany({ user: req.user.id });
+
+        // Notify frontend via socket
+        const io = req.app.get("io");
+        io.emit("userDeleted", user);
+
+        res.status(200).json({ message: 'User deleted successfully' });
+    } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };

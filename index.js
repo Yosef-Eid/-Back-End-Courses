@@ -10,6 +10,7 @@ import channel from './routes/channel.js'
 import videos from "./routes/videos.js";
 import reviews from './routes/reviews.js'
 import comments from './routes/comments.js'
+import { swaggerUi, swaggerSpec } from "./config/swagger.js";
 
 const app = express();
 
@@ -17,13 +18,14 @@ import cors from "cors";
 app.use(cors());
 app.use(express.json());
 
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Create server and socket.io
 const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: "*",
-        methods: ["GET", "POST"]
+        methods: ["GET", "POST", "PUT", "DELETE"]
     }
 });
 
@@ -49,4 +51,5 @@ app.use("/", comments);
 // Connect to database and start server
 connectDB()
 const PORT = process.env.PORT || 5000;
+// app.listen(PORT, () =>  console.log(`Server running on port ${PORT}`))
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
