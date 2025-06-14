@@ -23,18 +23,13 @@ export const getAllChannels = async (req, res) => {
 export const getChannel = async (req, res) => {
     try {
         // Find channel linked to the logged-in user
-        const channel = await Channel.findOne({ user: req.user.id });
-
-        if (!channel) {
-            return res.status(404).json({ message: "Channel not found" });
-        }
+        const channel = await Channel.find({ user: req.user.id });
+        if (!channel) return res.status(404).json({ message: "Channel not found" });
 
         // Ensure the logged-in user is the owner of the channel
-        if (!channel.user.equals(req.user.id)) {
-            return res.status(403).json({ message: "You are not allowed to access this channel" });
-        }
-
+        if (!channel.user.equals(req.user.id)) return res.status(403).json({ message: "You are not allowed to access this channel" });
         res.status(200).json(channel);
+        
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: error.message });

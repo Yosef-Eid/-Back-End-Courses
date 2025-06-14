@@ -60,8 +60,7 @@ export const addCourse = async (req, res) => {
 
         // Check if the channel exists and belongs to the current user
         const channel = await Channel.findById(req.params.channelId);
-        if (!channel)
-            return res.status(404).json({ message: "channel not found" });
+        if (!channel) return res.status(404).json({ message: "channel not found" });
         if (!channel.user || !channel.user.equals(req.user.id))
             return res.status(403).json({ message: "you are not allowed" });
 

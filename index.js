@@ -7,6 +7,7 @@ import { Server } from "socket.io";
 import auth from "./routes/auth.js";
 import course from './routes/course.js'
 import channel from './routes/channel.js'
+import group from './routes/group.js'
 import videos from "./routes/videos.js";
 import reviews from './routes/reviews.js'
 import comments from './routes/comments.js'
@@ -43,6 +44,7 @@ io.on("connection", (socket) => {
 // routes
 app.use("/", auth);
 app.use("/", course);
+app.use("/", group);
 app.use("/", channel);
 app.use("/", videos);
 app.use("/", reviews);

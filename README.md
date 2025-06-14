@@ -35,24 +35,27 @@ auth/
 ## API Endpoints
 
 ### Authentication
-- POST /auth/login
-- POST /auth/register
-- POST /auth/verify-email
-- POST /auth/forgot-password
-- POST /auth/reset-password
-- POST /auth/github
+
+- POST `http://localhost:5000/auth/login`
+- POST `http://localhost:5000/auth/register`
+- POST `http://localhost:5000/auth/verify-email`
+- POST `http://localhost:5000/auth/forgot-password`
+- POST `http://localhost:5000/auth/reset-password`
+- POST `http://localhost:5000/auth/github`
 
 ### Courses
-- GET /courses/getAllCourses
-- GET /courses/{courseId}
-- POST /courses
-- PUT /courses/{courseId}
-- DELETE /courses/{courseId}
+
+- GET `http://localhost:5000/courses/getAllCourses`
+- GET `http://localhost:5000/courses/{courseId}`
+- POST `http://localhost:5000/courses`
+- PUT `http://localhost:5000/courses/{courseId}`
+- DELETE `http://localhost:5000/courses/{courseId}`
 
 ### Users
-- GET /users/me
-- PUT /users/profile
-- POST /users/upload-avatar
+
+- GET `http://localhost:5000/users/me`
+- PUT `http://localhost:5000/users/profile`
+- POST `http://localhost:5000/users/upload-avatar`
 
 ## Environment Variables
 
@@ -107,6 +110,7 @@ RATE_LIMIT_MAX_REQUESTS=100
 ## Getting Started
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
@@ -114,11 +118,13 @@ npm install
 2. Create a `.env` file with your configuration
 
 3. Start the server:
+
 ```bash
 npm start
 ```
 
 4. Access Swagger documentation at:
+
 ```
 http://localhost:5000/api-docs
 ```
